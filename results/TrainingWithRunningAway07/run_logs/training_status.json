@@ -1,0 +1,65 @@
+{
+    "HiderBehavior": {
+        "checkpoints": [
+            {
+                "steps": 9999985,
+                "file_path": "results\\TrainingWithRunningAway07\\HiderBehavior\\HiderBehavior-9999985.onnx",
+                "reward": 0.6768999279593118,
+                "creation_time": 1727070714.6550188,
+                "auxillary_file_paths": [
+                    "results\\TrainingWithRunningAway07\\HiderBehavior\\HiderBehavior-9999985.pt"
+                ]
+            },
+            {
+                "steps": 10499991,
+                "file_path": "results\\TrainingWithRunningAway07\\HiderBehavior\\HiderBehavior-10499991.onnx",
+                "reward": 1.6065665818750858,
+                "creation_time": 1727072620.4547539,
+                "auxillary_file_paths": [
+                    "results\\TrainingWithRunningAway07\\HiderBehavior\\HiderBehavior-10499991.pt"
+                ]
+            },
+            {
+                "steps": 10999757,
+                "file_path": "results\\TrainingWithRunningAway07\\HiderBehavior\\HiderBehavior-10999757.onnx",
+                "reward": 0.7277999892830849,
+                "creation_time": 1727074518.8218217,
+                "auxillary_file_paths": [
+                    "results\\TrainingWithRunningAway07\\HiderBehavior\\HiderBehavior-10999757.pt"
+                ]
+            },
+            {
+                "steps": 11499944,
+                "file_path": "results\\TrainingWithRunningAway07\\HiderBehavior\\HiderBehavior-11499944.onnx",
+                "reward": 1.6854331460781395,
+                "creation_time": 1727076420.53423,
+                "auxillary_file_paths": [
+                    "results\\TrainingWithRunningAway07\\HiderBehavior\\HiderBehavior-11499944.pt"
+                ]
+            },
+            {
+                "steps": 11653932,
+                "file_path": "results\\TrainingWithRunningAway07\\HiderBehavior\\HiderBehavior-11653932.onnx",
+                "reward": null,
+                "creation_time": 1727077009.5969105,
+                "auxillary_file_paths": [
+                    "results\\TrainingWithRunningAway07\\HiderBehavior\\HiderBehavior-11653932.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 11653932,
+            "file_path": "results\\TrainingWithRunningAway07\\HiderBehavior.onnx",
+            "reward": null,
+            "creation_time": 1727077009.5969105,
+            "auxillary_file_paths": [
+                "results\\TrainingWithRunningAway07\\HiderBehavior\\HiderBehavior-11653932.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "0.29.0",
+        "torch_version": "2.0.1+cu117"
+    }
+}

@@ -1,0 +1,67 @@
+behaviors:
+  SeekerBehavior:
+    trainer_type: ppo
+    hyperparameters:
+      batch_size: 256
+      buffer_size: 2048
+      learning_rate: 0.0003
+      beta: 0.01
+      epsilon: 0.2
+      lambd: 0.95
+      num_epoch: 3
+      learning_rate_schedule: linear
+    network_settings:
+      normalize: false
+      hidden_units: 512
+      num_layers: 2
+      vis_encode_type: simple
+    reward_signals:
+      extrinsic:
+        gamma: 0.99
+        strength: 1.0
+      curiosity:
+        gamma: 0.99
+        strength: 0.025
+        network_settings:
+          hidden_units: 256
+        learning_rate: 0.0003
+    keep_checkpoints: 5
+    max_steps: 50000000
+    time_horizon: 256
+    summary_freq: 30000
+  HiderBehavior:
+    trainer_type: ppo
+    hyperparameters:
+      batch_size: 256
+      buffer_size: 2048
+      learning_rate: 0.0003
+      beta: 0.01
+      epsilon: 0.2
+      lambd: 0.95
+      num_epoch: 3
+      learning_rate_schedule: linear
+    network_settings:
+      normalize: false
+      hidden_units: 512
+      num_layers: 2
+      vis_encode_type: simple
+    reward_signals:
+      extrinsic:
+        gamma: 0.99
+        strength: 1.0
+      curiosity:
+        gamma: 0.99
+        strength: 0.05
+        network_settings:
+          hidden_units: 256
+      gail:
+        strength: 0.3
+        gamma: 0.99
+        demo_path: HiderDemo/BalancedLR.demo
+    behavioral_cloning:
+      strength: 0.05
+      demo_path: HiderDemo/BalancedLR.demo
+    keep_checkpoints: 5
+    max_steps: 50000000
+    time_horizon: 256
+    summary_freq: 30000

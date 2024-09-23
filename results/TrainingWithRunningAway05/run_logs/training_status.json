@@ -1,0 +1,96 @@
+{
+    "HiderBehavior": {
+        "checkpoints": [
+            {
+                "steps": 4999875,
+                "file_path": "results\\TrainingWithRunningAway05\\HiderBehavior\\HiderBehavior-4999875.onnx",
+                "reward": 0.800000011920929,
+                "creation_time": 1726909328.813653,
+                "auxillary_file_paths": [
+                    "results\\TrainingWithRunningAway05\\HiderBehavior\\HiderBehavior-4999875.pt"
+                ]
+            },
+            {
+                "steps": 5499961,
+                "file_path": "results\\TrainingWithRunningAway05\\HiderBehavior\\HiderBehavior-5499961.onnx",
+                "reward": null,
+                "creation_time": 1726911553.4674091,
+                "auxillary_file_paths": [
+                    "results\\TrainingWithRunningAway05\\HiderBehavior\\HiderBehavior-5499961.pt"
+                ]
+            },
+            {
+                "steps": 5999953,
+                "file_path": "results\\TrainingWithRunningAway05\\HiderBehavior\\HiderBehavior-5999953.onnx",
+                "reward": 0.20000004768371582,
+                "creation_time": 1726913786.568774,
+                "auxillary_file_paths": [
+                    "results\\TrainingWithRunningAway05\\HiderBehavior\\HiderBehavior-5999953.pt"
+                ]
+            },
+            {
+                "steps": 6499928,
+                "file_path": "results\\TrainingWithRunningAway05\\HiderBehavior\\HiderBehavior-6499928.onnx",
+                "reward": 5.763400922354776,
+                "creation_time": 1726916022.2986887,
+                "auxillary_file_paths": [
+                    "results\\TrainingWithRunningAway05\\HiderBehavior\\HiderBehavior-6499928.pt"
+                ]
+            },
+            {
+                "steps": 6647539,
+                "file_path": "results\\TrainingWithRunningAway05\\HiderBehavior\\HiderBehavior-6647539.onnx",
+                "reward": null,
+                "creation_time": 1726916685.606951,
+                "auxillary_file_paths": [
+                    "results\\TrainingWithRunningAway05\\HiderBehavior\\HiderBehavior-6647539.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 6647539,
+            "file_path": "results\\TrainingWithRunningAway05\\HiderBehavior.onnx",
+            "reward": null,
+            "creation_time": 1726916685.606951,
+            "auxillary_file_paths": [
+                "results\\TrainingWithRunningAway05\\HiderBehavior\\HiderBehavior-6647539.pt"
+            ]
+        }
+    },
+    "SeekerBehavior": {
+        "checkpoints": [
+            {
+                "steps": 499970,
+                "file_path": "results\\TrainingWithRunningAway05\\SeekerBehavior\\SeekerBehavior-499970.onnx",
+                "reward": 0.10138983527819316,
+                "creation_time": 1726889269.5963666,
+                "auxillary_file_paths": [
+                    "results\\TrainingWithRunningAway05\\SeekerBehavior\\SeekerBehavior-499970.pt"
+                ]
+            },
+            {
+                "steps": 503841,
+                "file_path": "results\\TrainingWithRunningAway05\\SeekerBehavior\\SeekerBehavior-503841.onnx",
+                "reward": null,
+                "creation_time": 1726889278.118988,
+                "auxillary_file_paths": [
+                    "results\\TrainingWithRunningAway05\\SeekerBehavior\\SeekerBehavior-503841.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 503841,
+            "file_path": "results\\TrainingWithRunningAway05\\SeekerBehavior.onnx",
+            "reward": null,
+            "creation_time": 1726889278.118988,
+            "auxillary_file_paths": [
+                "results\\TrainingWithRunningAway05\\SeekerBehavior\\SeekerBehavior-503841.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "0.29.0",
+        "torch_version": "2.0.1+cu117"
+    }
+}

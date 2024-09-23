@@ -1,0 +1,56 @@
+{
+    "HiderBehavior": {
+        "checkpoints": [
+            {
+                "steps": 499941,
+                "file_path": "results\\TrainingWithRunningAway03\\HiderBehavior\\HiderBehavior-499941.onnx",
+                "reward": 5.723999530076981,
+                "creation_time": 1726859955.6432667,
+                "auxillary_file_paths": [
+                    "results\\TrainingWithRunningAway03\\HiderBehavior\\HiderBehavior-499941.pt"
+                ]
+            },
+            {
+                "steps": 999911,
+                "file_path": "results\\TrainingWithRunningAway03\\HiderBehavior\\HiderBehavior-999911.onnx",
+                "reward": null,
+                "creation_time": 1726862324.6347065,
+                "auxillary_file_paths": [
+                    "results\\TrainingWithRunningAway03\\HiderBehavior\\HiderBehavior-999911.pt"
+                ]
+            },
+            {
+                "steps": 1499934,
+                "file_path": "results\\TrainingWithRunningAway03\\HiderBehavior\\HiderBehavior-1499934.onnx",
+                "reward": null,
+                "creation_time": 1726864579.2147398,
+                "auxillary_file_paths": [
+                    "results\\TrainingWithRunningAway03\\HiderBehavior\\HiderBehavior-1499934.pt"
+                ]
+            },
+            {
+                "steps": 1613187,
+                "file_path": "results\\TrainingWithRunningAway03\\HiderBehavior\\HiderBehavior-1613187.onnx",
+                "reward": null,
+                "creation_time": 1726865082.8849328,
+                "auxillary_file_paths": [
+                    "results\\TrainingWithRunningAway03\\HiderBehavior\\HiderBehavior-1613187.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 1613187,
+            "file_path": "results\\TrainingWithRunningAway03\\HiderBehavior.onnx",
+            "reward": null,
+            "creation_time": 1726865082.8849328,
+            "auxillary_file_paths": [
+                "results\\TrainingWithRunningAway03\\HiderBehavior\\HiderBehavior-1613187.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "0.29.0",
+        "torch_version": "2.0.1+cu117"
+    }
+}
