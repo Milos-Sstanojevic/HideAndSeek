@@ -3657,14 +3657,18 @@ PrefabInstance:
     - target: {fileID: 7072444432985767801, guid: e08506b1c02abd945ac66aafa2a394f3, type: 3}
       propertyPath: m_Model
       value: 
-      objectReference: {fileID: 5022602860645237092, guid: 22c17f9a88dbb034098746c282d6fc70, type: 3}
+      objectReference: {fileID: 5022602860645237092, guid: f8d8a33ee86989d4e8ac273f914292ba, type: 3}
     - target: {fileID: 7072444432985767801, guid: e08506b1c02abd945ac66aafa2a394f3, type: 3}
       propertyPath: m_BehaviorType
-      value: 0
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 9026172395270875870, guid: e08506b1c02abd945ac66aafa2a394f3, type: 3}
       propertyPath: DecisionPeriod
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9026172395270875870, guid: e08506b1c02abd945ac66aafa2a394f3, type: 3}
+      propertyPath: TakeActionsBetweenDecisions
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

@@ -13,9 +13,4 @@ public class SeekerController : MonoBehaviour
     {
         seekerAgent.HandleOnCollisionEnter(other);
     }
-
-    // private void OnCollisionStay(Collision other)
-    // {
-    //     seekerAgent.HandleOnCollisionStay(other);
-    // }
 }

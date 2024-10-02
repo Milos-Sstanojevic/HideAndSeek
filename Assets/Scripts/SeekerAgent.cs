@@ -6,6 +6,26 @@ using UnityEngine;
 
 public class SeekerAgent : Agent
 {
+    public const string WallTag = "Wall";
+    public const string HiderTag = "Hider";
+    public static Vector3 StartingPosition = new Vector3(-1, 0.25f, 2f);
+    public const int ForwardAction = 1;
+    public const int BackwardAction = 2;
+    public const int RightRotationAction = 1;
+    public const int LeftRotationAction = 2;
+    public const int NoAction = 0;
+    public const float RewardForGettingClosesEverToHider = 0.2f;
+    public const float FactorOfRewardForMovingCloser = 0.02f;
+    public const float SmallRewardForAligningToHider = 0.01f;
+    public const float SuperSmallRewardForNotLosingSightOfHider = 0.0003f;
+    public const float RewardForSeeingAgentFirstTime = 0.5f;
+    public const float RewardForCatchingHider = 2f;
+    public const float PunishmentForCollidingWithWall = -0.5f;
+    public const float AngleForReward = 0.7f;
+    public const float LittleStep = 0.5f;
+    public const float RestartedDistanceFromHider = 0f;
+    public const float RestartedAlignmentToHider = 0f;
+
     public Action<int> OnFoundAction;
     public Action<bool> OnSeenAction;
 
@@ -30,32 +50,45 @@ public class SeekerAgent : Agent
     public override void Initialize()
     {
         seekerRb = GetComponentInParent<Rigidbody>();
-        bestAlignmentToHider = 0;
+        bestAlignmentToHider = RestartedAlignmentToHider;
         positionOfHider = Vector3.zero;
         closestDistanceEverToHider = float.MaxValue;
     }
 
     public override void OnEpisodeBegin()
     {
-        episodeCounter++;
+        ResetConditionsForOneTimeReward();
+        ResetStateOfSeekerForNewEpisode();
+
+        if (!hasGotHider)
+            return;
+
+        ResetConditionsIfHiderIsGotten();
+    }
+
+    private void ResetConditionsForOneTimeReward()
+    {
         cantCollideWithHider = false;
         cantCollideWithWall = false;
         hasCollidedWithHider = false;
         hasCollidedWithWall = false;
+    }
+
+    private void ResetStateOfSeekerForNewEpisode()
+    {
         seekerRb.velocity = Vector3.zero;
         seekerRb.angularVelocity = Vector3.zero;
-        transform.parent.localPosition = new Vector3(-1, 0.25f, 2f);
-        previousDistanceToHider = 0f;
+        transform.parent.localPosition = StartingPosition;
+        previousDistanceToHider = RestartedDistanceFromHider;
+    }
 
-        if (hasGotHider)
-        {
-            closestDistanceEverToHider = float.MaxValue;
-            bestAlignmentToHider = 0;
-            positionOfHider = Vector3.zero;
-            gotRewardForSeeingHiderFirstTime = false;
-            hasGotHider = false;
-        }
-
+    private void ResetConditionsIfHiderIsGotten()
+    {
+        closestDistanceEverToHider = float.MaxValue;
+        bestAlignmentToHider = RestartedAlignmentToHider;
+        positionOfHider = Vector3.zero;
+        gotRewardForSeeingHiderFirstTime = false;
+        hasGotHider = false;
     }
 
     public override void OnActionReceived(ActionBuffers actions)
@@ -64,27 +97,82 @@ public class SeekerAgent : Agent
             return;
 
         MoveAgent(actions.DiscreteActions);
+
         if (!gotRewardForSeeingHiderFirstTime)
             return;
 
         float currentDistanceToHider = Vector3.Distance(transform.parent.localPosition, positionOfHider);
 
-        if (currentDistanceToHider + 0.5f < closestDistanceEverToHider)
+        RewardIfSeekerGotClosestEverToHider(currentDistanceToHider);
+
+        RewardIfSeekerGotCloserToHiderNow(currentDistanceToHider);
+
+        RewardIfSeekerIsLookingAtHider();
+    }
+
+    private void MoveAgent(ActionSegment<int> actions)
+    {
+        RotationMovement(actions);
+        ForwardBackwardMovement(actions[0]);
+    }
+
+    private void RotationMovement(ActionSegment<int> actions)
+    {
+        var rotateDirection = Vector3.zero;
+
+        if (actions[1] == RightRotationAction)
+            rotateDirection = rotationSpeed * Time.deltaTime * Vector3.up;
+        else if (actions[1] == LeftRotationAction)
+            rotateDirection = -rotationSpeed * Time.deltaTime * Vector3.up;
+
+        transform.parent.Rotate(rotateDirection);
+    }
+
+    private void ForwardBackwardMovement(int action)
+    {
+        var moveDirection = Vector3.zero;
+
+        switch (action)
         {
-            closestDistanceEverToHider = currentDistanceToHider;
-            AddReward(0.2f);
+            case ForwardAction:
+                moveDirection = movementSpeed * Time.deltaTime * Vector3.forward;
+                break;
+            case BackwardAction:
+                moveDirection = movementSpeed * Time.deltaTime * Vector3.back;
+                break;
         }
 
+        transform.parent.Translate(moveDirection, Space.Self);
+    }
+
+    private void RewardIfSeekerGotClosestEverToHider(float currentDistanceToHider)
+    {
+        if (currentDistanceToHider + LittleStep >= closestDistanceEverToHider)
+            return;
+
+        closestDistanceEverToHider = currentDistanceToHider;
+        AddReward(RewardForGettingClosesEverToHider);
+    }
+
+    private void RewardIfSeekerGotCloserToHiderNow(float currentDistanceToHider)
+    {
         if (previousDistanceToHider == 0)
         {
             previousDistanceToHider = currentDistanceToHider;
         }
-        else if (previousDistanceToHider - currentDistanceToHider >= 0.5f)
+        else if (SeekerGettingCloserToHider(currentDistanceToHider))
         {
-            AddReward((previousDistanceToHider - currentDistanceToHider) * 0.02f);
+            AddReward(RewardForMovingCloserToHider(currentDistanceToHider));
             previousDistanceToHider = currentDistanceToHider;
         }
+    }
 
+    private bool SeekerGettingCloserToHider(float currentDistanceToHider) => previousDistanceToHider - currentDistanceToHider >= LittleStep;
+
+    private float RewardForMovingCloserToHider(float currentDistanceToHider) => (previousDistanceToHider - currentDistanceToHider) * FactorOfRewardForMovingCloser;
+
+    private void RewardIfSeekerIsLookingAtHider()
+    {
         Vector3 directionToHider = (positionOfHider - transform.parent.localPosition).normalized;
         float currentAlignment = Vector3.Dot(transform.parent.forward, directionToHider);
         currentAlignment = Mathf.Clamp01(currentAlignment);
@@ -92,112 +180,96 @@ public class SeekerAgent : Agent
         if (currentAlignment > bestAlignmentToHider)
         {
             bestAlignmentToHider = currentAlignment;
-            AddReward(0.01f);
-
-            if (bestAlignmentToHider > 0.7f)
-                AddReward(bestAlignmentToHider * 0.01f);
-        }
-    }
-
-    private void MoveAgent(ActionSegment<int> actions)
-    {
-        var moveDirection = Vector3.zero;
-        var rotateDirection = Vector3.zero;
-
-        var action = actions[0];
-
-        switch (action)
-        {
-            case 1:
-                moveDirection = movementSpeed * Time.deltaTime * Vector3.forward;
-                break;
-            case 2:
-                moveDirection = movementSpeed * Time.deltaTime * Vector3.back;
-                break;
+            AddReward(SmallRewardForAligningToHider);
         }
 
-        if (actions[1] == 1)
-        {
-            rotateDirection = rotationSpeed * Time.deltaTime * Vector3.up;
-        }
-        else if (actions[1] == 2)
-        {
-            rotateDirection = -rotationSpeed * Time.deltaTime * Vector3.up;
-        }
-
-        transform.parent.Rotate(rotateDirection);
-        transform.parent.Translate(moveDirection, Space.Self);
+        if (currentAlignment > AngleForReward)
+            AddReward(currentAlignment * SmallRewardForAligningToHider);
     }
 
     public override void Heuristic(in ActionBuffers actionsOut)
     {
-        var discreteActionsOut = actionsOut.DiscreteActions;
-        if (Input.GetKey(KeyCode.W))
-            discreteActionsOut[0] = 1;
-        else if (Input.GetKey(KeyCode.S))
-            discreteActionsOut[0] = 2;
-        else
-            discreteActionsOut[0] = 0;
+        ActionSegment<int> discreteActionsOut = actionsOut.DiscreteActions;
 
-        if (Input.GetKey(KeyCode.D))
-            discreteActionsOut[1] = 1;
-        else if (Input.GetKey(KeyCode.A))
-            discreteActionsOut[1] = 2;
+        HandleMovementActions(discreteActionsOut);
+
+        HandleRotationActions(discreteActionsOut);
+    }
+
+    private void HandleMovementActions(ActionSegment<int> discreteActionsOut)
+    {
+        if (Input.GetKey(KeyCode.W))
+            discreteActionsOut[0] = ForwardAction;
+        else if (Input.GetKey(KeyCode.S))
+            discreteActionsOut[0] = BackwardAction;
         else
-            discreteActionsOut[1] = 0;
+            discreteActionsOut[0] = NoAction;
+    }
+
+    private void HandleRotationActions(ActionSegment<int> discreteActionsOut)
+    {
+        if (Input.GetKey(KeyCode.D))
+            discreteActionsOut[1] = RightRotationAction;
+        else if (Input.GetKey(KeyCode.A))
+            discreteActionsOut[1] = LeftRotationAction;
+        else
+            discreteActionsOut[1] = NoAction;
     }
 
     public override void CollectObservations(VectorSensor sensor)
     {
-        if (agentStarted)
-        {
-            sensor.AddObservation(transform.parent.localPosition.normalized);
-            sensor.AddObservation(transform.parent.localRotation.normalized);
-
-            // if (!hiderFound)
-            // {
-            //     foreach (var raySensor in rayPerceptionSensor.RaySensor.RayPerceptionOutput.RayOutputs)
-            //     {
-            //         if (raySensor.HitGameObject != null && raySensor.HitGameObject.CompareTag("Hider"))
-            //         {
-            //             AddReward(0.5f);
-            //             positionOfHider = raySensor.HitGameObject.transform.localPosition;
-            //             hiderFound = true;
-            //             OnSeenAction.Invoke(true);
-            //             break;
-            //         }
-            //     }
-            // }
-            bool canSeeHider = false;
-            foreach (var raySensor in rayPerceptionSensor.RaySensor.RayPerceptionOutput.RayOutputs)
-            {
-                if (raySensor.HitGameObject != null && raySensor.HitGameObject.CompareTag("Hider"))
-                {
-                    if (!gotRewardForSeeingHiderFirstTime)
-                    {
-                        AddReward(0.5f);
-                        gotRewardForSeeingHiderFirstTime = true;
-                    }
-                    canSeeHider = true;
-                    positionOfHider = raySensor.HitGameObject.transform.localPosition;
-                    AddReward(0.0003f);
-                    break;
-                }
-            }
-
-            OnSeenAction.Invoke(canSeeHider);
-
-            if (gotRewardForSeeingHiderFirstTime)
-                sensor.AddObservation(positionOfHider.normalized);
-            else
-                sensor.AddObservation(Vector3.zero);
-        }
-        else
+        if (!agentStarted)
         {
             sensor.AddObservation(Vector3.zero);
             sensor.AddObservation(Quaternion.identity);
             sensor.AddObservation(Vector3.zero);
+            return;
         }
+
+        SetObservationsForLocalPositionAndOrientation(sensor);
+
+        RewardIfSeekerSawOrIsLookingAtHider();
+
+        if (gotRewardForSeeingHiderFirstTime)
+            sensor.AddObservation(positionOfHider.normalized);
+        else
+            sensor.AddObservation(Vector3.zero);
+    }
+
+    private void SetObservationsForLocalPositionAndOrientation(VectorSensor sensor)
+    {
+        sensor.AddObservation(transform.parent.localPosition.normalized);
+        sensor.AddObservation(transform.parent.localRotation.normalized);
+    }
+
+    private void RewardIfSeekerSawOrIsLookingAtHider()
+    {
+        bool canSeeHider = false;
+
+        foreach (var raySensor in rayPerceptionSensor.RaySensor.RayPerceptionOutput.RayOutputs)
+        {
+            if (raySensor.HitGameObject == null || !raySensor.HitGameObject.CompareTag(HiderTag))
+                continue;
+
+            RewardSeekerForSeeingAgentForFirstTime();
+
+            //Reward Seeker for not losing Sight of Hider
+            canSeeHider = true;
+            positionOfHider = raySensor.HitGameObject.transform.localPosition;
+            AddReward(SuperSmallRewardForNotLosingSightOfHider);
+            break;
+        }
+
+        OnSeenAction.Invoke(canSeeHider);
+    }
+
+    private void RewardSeekerForSeeingAgentForFirstTime()
+    {
+        if (gotRewardForSeeingHiderFirstTime)
+            return;
+
+        AddReward(RewardForSeeingAgentFirstTime);
+        gotRewardForSeeingHiderFirstTime = true;
     }
 
     public void HandleOnCollisionEnter(Collision other)
@@ -205,43 +277,47 @@ public class SeekerAgent : Agent
         if (!agentStarted)
             return;
 
-        if (other.gameObject.CompareTag("Wall") && !cantCollideWithWall)
+        if (other.gameObject.CompareTag(WallTag) && !cantCollideWithWall)
             hasCollidedWithWall = true;
 
-        if (other.gameObject.CompareTag("Hider") && !cantCollideWithHider)
+        if (other.gameObject.CompareTag(HiderTag) && !cantCollideWithHider)
             hasCollidedWithHider = true;
     }
-
-    // public void HandleOnCollisionStay(Collision other)
-    // {
-    //     if (other.gameObject.CompareTag("Wall") || other.gameObject.CompareTag("HidingWall"))
-    //         AddReward(-0.03f * Time.fixedDeltaTime);
-    // }
 
     private void FixedUpdate()
     {
         if (!agentStarted)
             return;
 
-        if (hasCollidedWithHider)
-        {
-            hasCollidedWithHider = false;
-            cantCollideWithHider = true;
+        HandleCollidingWithHider();
 
-            AddReward(2f);
-            OnFoundAction.Invoke(episodeCounter);
-            hasGotHider = true;
+        HandleCollidingWithWall();
+    }
 
-            EndEpisode();
-        }
+    private void HandleCollidingWithHider()
+    {
+        if (!hasCollidedWithHider)
+            return;
 
-        if (hasCollidedWithWall)
-        {
-            hasCollidedWithWall = false;
-            cantCollideWithWall = true;
-            AddReward(-0.5f);
-            EndEpisode();
-        }
+        hasCollidedWithHider = false;
+        cantCollideWithHider = true;
+
+        AddReward(RewardForCatchingHider);
+        OnFoundAction.Invoke(episodeCounter);
+        hasGotHider = true;
+
+        EndEpisode();
+    }
+
+    private void HandleCollidingWithWall()
+    {
+        if (!hasCollidedWithWall)
+            return;
+
+        hasCollidedWithWall = false;
+        cantCollideWithWall = true;
+        AddReward(PunishmentForCollidingWithWall);
+        EndEpisode();
     }
 
     public void StartAgent()

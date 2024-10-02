@@ -1,12 +1,37 @@
 using Unity.MLAgents;
 using Unity.MLAgents.Actuators;
 using Unity.MLAgents.Sensors;
-using Unity.VisualScripting;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
 public class HiderAgent : Agent
 {
+    public const string HidingWallTag = "HidingWall";
+    public const string WallTag = "Wall";
+    public const string SeekerTag = "Seeker";
+    public static Vector3 StartingPosition = new Vector3(0, 0.25f, 0);
+    public const float MomentOfStartingToSeek = 0.022f;
+    public const float SmallContinuousReward = 0.001f;
+    public const float ExtraSmallContinuousReward = 0.0001f;
+    public const float PunishmentForBeingFound = -0.7f;
+    public const float RewardForNotBeingFound = 2f;
+    public const float RewardForChangingPlaceOfHiding = 1f;
+    public const float RewardForHiding = 1f;
+    public const float PunishmentForNotHiding = -0.5f;
+    public const float PunishmentForNotLookingAtSeeker = -0.5f;
+    public const float PunishmentForCollidingWithWall = -0.5f;
+    public const float MaxDistanceOfRay = 3f;
+    public const float MaxAngleToSeeker = 20f;
+    public const int ForwardAction = 1;
+    public const int BackwardAction = 2;
+    public const int LeftRotation = 2;
+    public const int RightRotation = 1;
+    public const int NoAction = 0;
+    public const int MinimumTimeOfAgentToBeHidden = 10;
+    public const float RadiusOfSphere = 0.5f;
+    public const float SmallDistance = 0.05f;
+    public const float RadiusOfNewHidingSpot = 4f;
+
+
     [SerializeField] private SeekerAgent seekerAgent;
     [SerializeField] private LayerMask hidingWallMask;
     [SerializeField] private RayPerceptionSensorComponent3D raySensorFront;
@@ -46,11 +71,26 @@ public class HiderAgent : Agent
             sawEachOther = true;
     }
 
+    private bool RayPerceptionSensorDetectedSeeker()
+    {
+        foreach (var raySensor in raySensorFront.RaySensor.RayPerceptionOutput.RayOutputs)
+            if (raySensor.HitGameObject != null && raySensor.HitGameObject.CompareTag(SeekerTag))
+                return true;
+
+        return false;
+    }
+
     public override void OnEpisodeBegin()
     {
         if (!wasFound)
-            AddReward(2f);
+            AddReward(RewardForNotBeingFound);
 
+        ResetConditionsForNewEpisode();
+        ResetStateOfHiderForNewEpisode();
+    }
+
+    private void ResetConditionsForNewEpisode()
+    {
         gotPunishmentForNotLooking = false;
         gotRewardForDifferentSpot = false;
         gotNegativeForNotHiding = false;
@@ -59,7 +99,11 @@ public class HiderAgent : Agent
         gotPunishment = false;
         sawEachOther = false;
         wasFound = false;
-        transform.parent.localPosition = new Vector3(0, 0.25f, 0);
+    }
+
+    private void ResetStateOfHiderForNewEpisode()
+    {
+        transform.parent.localPosition = StartingPosition;
         previousPosition = transform.parent.localPosition;
         hiderRb.velocity = Vector3.zero;
         hiderRb.angularVelocity = Vector3.zero;
@@ -84,36 +128,42 @@ public class HiderAgent : Agent
         RewardIfChangedPlaceOfHiding();
 
         PunishIfNotLookingAtSeeker();
-
     }
 
-    private void RewardForStayingHidden()
+    private void MoveAgent(ActionSegment<int> actions)
     {
-        if (agentIsHidden && !isBeingSeenBySeeker)
-            AddReward(0.001f);
+        RotationMovement(actions);
+        ForwardBackwardMovement(actions[0]);
     }
 
-    private void RewardForApproachingHidingSpot()
+    private void ForwardBackwardMovement(int action)
     {
-        if (agentIsSeeking)
-            return;
 
-        Collider[] walls = Physics.OverlapSphere(transform.position, 0.5f, hidingWallMask);
-        if (walls.Length > 0 && !gotRewardForApproachingWall)
-            AddReward(0.001f);
-    }
+        var moveDirection = Vector3.zero;
 
-    private void RewardIfChangedPlaceOfHiding()
-    {
-        if (!agentIsHidden)
-            return;
-
-        if (Vector3.Distance(transform.parent.localPosition, previousHidingSpot) > 4f && agentIsSeeking && !gotRewardForDifferentSpot && Time.realtimeSinceStartup - timeStartedSeeking < 0.022f)
+        switch (action)
         {
-            AddReward(1.0f);
-            gotRewardForDifferentSpot = true;
-            previousHidingSpot = transform.parent.localPosition;
+            case ForwardAction:
+                moveDirection = movementSpeed * Time.deltaTime * Vector3.forward;
+                break;
+            case BackwardAction:
+                moveDirection = movementSpeed * Time.deltaTime * Vector3.back;
+                break;
         }
+
+        transform.parent.Translate(moveDirection, Space.Self);
+    }
+
+    private void RotationMovement(ActionSegment<int> actions)
+    {
+        var rotateDirection = Vector3.zero;
+
+        if (actions[1] == RightRotation)
+            rotateDirection = rotationSpeed * Time.deltaTime * Vector3.up;
+        else if (actions[1] == LeftRotation)
+            rotateDirection = -rotationSpeed * Time.deltaTime * Vector3.up;
+
+        transform.parent.Rotate(rotateDirection);
     }
 
     private void CheckIfHidden()
@@ -121,29 +171,57 @@ public class HiderAgent : Agent
         bool seekerDetected = RayPerceptionSensorDetectedSeeker();
         bool obstacleBetween = IsObstacleBetweenHiderAndSeeker();
 
-        bool isHiderNotMoving = Vector3.Distance(transform.parent.position, previousPosition) < 0.05f;
+        bool isHiderNotMoving = IsHiderNotMoving();
 
         previousPosition = transform.parent.position;
 
         if (!seekerDetected && obstacleBetween && !agentIsHidden && !agentIsSeeking && isHiderNotMoving)
         {
             agentIsHidden = true;
-            AddReward(1f);
+            AddReward(RewardForHiding);
         }
         if (!agentIsHidden && agentIsSeeking && !gotNegativeForNotHiding)
         {
-            AddReward(-0.5f);
+            AddReward(PunishmentForNotHiding);
             gotNegativeForNotHiding = true;
         }
     }
 
+    private bool IsHiderNotMoving() => Vector3.Distance(transform.parent.position, previousPosition) < SmallDistance;
+
+    private bool IsObstacleBetweenHiderAndSeeker()
+    {
+        Vector3 directionToSeeker = seekerAgent.transform.parent.position - transform.parent.position;
+        RaycastHit hit;
+
+        if (Physics.Raycast(transform.parent.position, directionToSeeker, out hit, MaxDistanceOfRay) && !agentIsSeeking)
+            if (hit.transform.gameObject.CompareTag(HidingWallTag))
+                return true;
+
+        return false;
+    }
+
+    private void CheckIfHiderRunningAwayAndReward()
+    {
+        if (!sawEachOther || !isBeingSeenBySeeker || !agentIsSeeking || !agentIsHidden)
+            return;
+
+        float distance = Vector3.Distance(transform.localPosition, seekerAgent.transform.parent.localPosition);
+        float currentDistance = distance;
+
+        if (distance > 1f || currentDistance > previousDistance)
+            AddReward(ExtraSmallContinuousReward);
+
+        previousDistance = currentDistance;
+    }
+
     private void PunishIfNotHiddenWhenSeekerIsSeeking()
     {
-        if (agentIsSeeking && !agentIsHidden && !gotPunishment)
-        {
-            AddReward(-0.5f);
-            gotPunishment = true;
-        }
+        if (!agentIsSeeking || agentIsHidden || gotPunishment)
+            return;
+
+        AddReward(PunishmentForNotHiding);
+        gotPunishment = true;
     }
 
     private void RewardIfLookingInDirectionOfSeekerWhenHidden()
@@ -154,110 +232,88 @@ public class HiderAgent : Agent
         Vector3 directionToSeeker = seekerAgent.transform.parent.position - transform.parent.position;
 
         float angleToSeeker = Vector3.Angle(transform.parent.forward, directionToSeeker);
-        if (angleToSeeker < 20f && !agentIsSeeking)
+
+        if (angleToSeeker < MaxAngleToSeeker && !agentIsSeeking)
         {
             gotAngleReward = true;
-            AddReward(0.001f);
+            AddReward(SmallContinuousReward);
         }
     }
+
+    private void RewardForStayingHidden()
+    {
+        if (agentIsHidden && !isBeingSeenBySeeker)
+            AddReward(SmallContinuousReward);
+    }
+
+    private void RewardForApproachingHidingSpot()
+    {
+        if (agentIsSeeking)
+            return;
+
+        Collider[] walls = Physics.OverlapSphere(transform.position, RadiusOfSphere, hidingWallMask);
+        if (walls.Length > 0 && !gotRewardForApproachingWall)
+            AddReward(SmallContinuousReward);
+    }
+
+    private void RewardIfChangedPlaceOfHiding()
+    {
+        if (!agentIsHidden)
+            return;
+
+        if (IsInRadiusOfPrevoiusHidingSpot() || !agentIsSeeking || gotRewardForDifferentSpot || Time.realtimeSinceStartup - timeStartedSeeking > MomentOfStartingToSeek)
+            return;
+
+        AddReward(RewardForChangingPlaceOfHiding);
+        gotRewardForDifferentSpot = true;
+        previousHidingSpot = transform.parent.localPosition;
+    }
+
+    private bool IsInRadiusOfPrevoiusHidingSpot() => Vector3.Distance(transform.parent.localPosition, previousHidingSpot) <= RadiusOfNewHidingSpot;
 
     private void PunishIfNotLookingAtSeeker()
     {
-        if (agentIsHidden && !gotAngleReward && agentIsSeeking && !gotPunishmentForNotLooking)
-        {
-            AddReward(-0.5f);
-            gotPunishmentForNotLooking = true;
-            Debug.LogError("Kaznjen");
-        }
+        if (!agentIsHidden || gotAngleReward || !agentIsSeeking || gotPunishmentForNotLooking)
+            return;
+
+        AddReward(PunishmentForNotLookingAtSeeker);
+        gotPunishmentForNotLooking = true;
     }
 
-    private bool IsObstacleBetweenHiderAndSeeker()
-    {
-        Vector3 directionToSeeker = seekerAgent.transform.parent.position - transform.parent.position;
-        RaycastHit hit;
-
-        if (Physics.Raycast(transform.parent.position, directionToSeeker, out hit, 3f) && !agentIsSeeking)
-            if (hit.transform.gameObject.CompareTag("HidingWall"))
-                return true;
-        return false;
-    }
-
-    private void MoveAgent(ActionSegment<int> actions)
-    {
-        var moveDirection = Vector3.zero;
-        var rotateDirection = Vector3.zero;
-
-        var action = actions[0];
-
-        switch (action)
-        {
-            case 1:
-                moveDirection = movementSpeed * Time.deltaTime * Vector3.forward;
-                break;
-            case 2:
-                moveDirection = movementSpeed * Time.deltaTime * Vector3.back;
-                break;
-        }
-
-        if (actions[1] == 1)
-        {
-            rotateDirection = rotationSpeed * Time.deltaTime * Vector3.up;
-        }
-        else if (actions[1] == 2)
-        {
-            rotateDirection = -rotationSpeed * Time.deltaTime * Vector3.up;
-        }
-
-        transform.parent.Rotate(rotateDirection);
-        transform.parent.Translate(moveDirection, Space.Self);
-    }
-
-    private bool RayPerceptionSensorDetectedSeeker()
-    {
-        foreach (var raySensor in raySensorFront.RaySensor.RayPerceptionOutput.RayOutputs)
-            if (raySensor.HitGameObject != null && raySensor.HitGameObject.CompareTag("Seeker"))
-                return true;
-
-        return false;
-    }
-
-    private void CheckIfHiderRunningAwayAndReward()
-    {
-        if (sawEachOther && isBeingSeenBySeeker && agentIsSeeking && agentIsHidden)
-        {
-            float distance = Vector3.Distance(transform.localPosition, seekerAgent.transform.parent.localPosition);
-            float currentDistance = distance;
-
-            if (distance > 1f || currentDistance > previousDistance)
-                AddReward(0.0001f);
-
-            previousDistance = currentDistance;
-        }
-    }
 
     public override void Heuristic(in ActionBuffers actionsOut)
     {
-        var discreteActionsOut = actionsOut.DiscreteActions;
-        if (Input.GetKey(KeyCode.W))
-            discreteActionsOut[0] = 1;
-        else if (Input.GetKey(KeyCode.S))
-            discreteActionsOut[0] = 2;
-        else
-            discreteActionsOut[0] = 0;
+        ActionSegment<int> discreteActionsOut = actionsOut.DiscreteActions;
 
-        if (Input.GetKey(KeyCode.D))
-            discreteActionsOut[1] = 1;
-        else if (Input.GetKey(KeyCode.A))
-            discreteActionsOut[1] = 2;
-        else
-            discreteActionsOut[1] = 0;
+        HandleMoveActions(discreteActionsOut);
+
+        HandleRotationActions(discreteActionsOut);
     }
 
+    private void HandleMoveActions(ActionSegment<int> discreteActionsOut)
+    {
+        if (Input.GetKey(KeyCode.W))
+            discreteActionsOut[0] = ForwardAction;
+        else if (Input.GetKey(KeyCode.S))
+            discreteActionsOut[0] = BackwardAction;
+        else
+            discreteActionsOut[0] = NoAction;
+    }
+
+    private void HandleRotationActions(ActionSegment<int> discreteActionsOut)
+    {
+        if (Input.GetKey(KeyCode.D))
+            discreteActionsOut[1] = RightRotation;
+        else if (Input.GetKey(KeyCode.A))
+            discreteActionsOut[1] = LeftRotation;
+        else
+            discreteActionsOut[1] = NoAction;
+    }
 
     public void HandleAgentFound(float currentTime)
     {
-        if (currentTime <= 10f)
-            AddReward(-0.7f);
+        if (currentTime <= MinimumTimeOfAgentToBeHidden)
+            AddReward(PunishmentForBeingFound);
 
         wasFound = true;
         EndEpisode();
@@ -276,7 +332,7 @@ public class HiderAgent : Agent
 
     public void HandleOnCollisionEnter(Collision other)
     {
-        if (other.gameObject.CompareTag("Wall") && !cantCollideWithWall)
+        if (other.gameObject.CompareTag(WallTag) && !cantCollideWithWall)
             hasCollidedWithWall = true;
     }
 
@@ -287,6 +343,6 @@ public class HiderAgent : Agent
 
         hasCollidedWithWall = false;
         cantCollideWithWall = true;
-        AddReward(-0.5f);
+        AddReward(PunishmentForCollidingWithWall);
     }
 }

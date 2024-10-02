@@ -2,15 +2,17 @@ using UnityEngine;
 
 public class GameplayController : MonoBehaviour
 {
+    public const float RewardForFindingHider = 1f;
+    public const float HidingTime = 10f;
+    public const float SeekingTime = 20f;
+    public const float StartingTime = 0f;
+
     [SerializeField] private HiderAgent hiderAgent;
     [SerializeField] private SeekerAgent seekerAgent;
     [SerializeField] private MeshRenderer groundMesh;
     [SerializeField] private Material winMaterial;
     [SerializeField] private Material defaultMaterial;
-    private Collider seekerCollider;
 
-    private float hidingTime = 10f;
-    private float seekingTime = 20f;
     private float currentTime = 0f;
     private bool isHiding = false;
     private bool isSeeking = false;
@@ -22,7 +24,6 @@ public class GameplayController : MonoBehaviour
 
     private void Start()
     {
-        seekerCollider = seekerAgent.GetComponentInParent<Collider>();
         StartHidingPhase();
     }
 
@@ -31,7 +32,7 @@ public class GameplayController : MonoBehaviour
         if (isHiding)
         {
             currentTime += Time.deltaTime;
-            if (currentTime >= hidingTime)
+            if (currentTime >= HidingTime)
             {
                 StartSeekingPhase();
             }
@@ -39,7 +40,7 @@ public class GameplayController : MonoBehaviour
         else if (isSeeking)
         {
             currentTime += Time.deltaTime;
-            if (currentTime >= seekingTime)
+            if (currentTime >= SeekingTime)
             {
                 seekerAgent.StopAgent();
                 seekerAgent.EndEpisode();
@@ -52,10 +53,8 @@ public class GameplayController : MonoBehaviour
     private void StartHidingPhase()
     {
         seekerAgent.StopAgent();
-        // hiderAgent.StartAgent();
         hiderAgent.AgentIsNotSeeking();
-        // seekerCollider.enabled = false;
-        currentTime = 0f;
+        currentTime = StartingTime;
         isHiding = true;
         isSeeking = false;
     }
@@ -63,25 +62,28 @@ public class GameplayController : MonoBehaviour
     private void StartSeekingPhase()
     {
         seekerAgent.StartAgent();
-        // hiderAgent.StopAgent();
         hiderAgent.AgentIsSeeking();
-        // seekerCollider.enabled = true;
-        currentTime = 0f;
+        currentTime = StartingTime;
         isHiding = false;
         isSeeking = true;
     }
 
     private void FoundHider(int episodeCounter)
     {
-        seekerAgent.AddReward(1f);
+        seekerAgent.AddReward(RewardForFindingHider);
         hiderAgent.HandleAgentFound(currentTime);
 
+        ChangeColorOfGround(episodeCounter);
+
+        StartHidingPhase();
+    }
+
+    private void ChangeColorOfGround(int episodeCounter)
+    {
         if (episodeCounter % 2 == 0)
             groundMesh.material = winMaterial;
         else
             groundMesh.material = defaultMaterial;
-
-        StartHidingPhase();
     }
 
     private void OnDisable()
